@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item android:title="Status"
+        android:icon="@drawable/ic_circle_red"
+        android:id="@+id/id_status"
+        android:orderInCategory="1"
+        app:showAsAction="ifRoom"/>
+
+
+    <item android:title="Connect"
+        android:icon="@drawable/ic_compare"
+        android:id="@+id/id_connect"
+        android:orderInCategory="2"
+        app:showAsAction="ifRoom"/>
+
+    <item android:title="Bluetooth"
+        android:icon="@drawable/ic_baseline_bluetooth_24"
+        android:id="@+id/bt_id"
+        android:orderInCategory="3"
+        app:showAsAction="ifRoom"/>
+
+    <item android:title="Device List"
+        android:icon="@drawable/ic_baseline_menu_24"
+        android:orderInCategory="4"
+        android:id="@+id/bt_menu"
+        app:showAsAction="ifRoom"/>
+
+    <item
+        android:id="@+id/Event_Log"
+        android:icon="@drawable/ic_baseline_menu_24"
+        android:orderInCategory="5"
+        android:title="Event Log"
+        app:showAsAction="ifRoom" />
+
+
+</menu>
