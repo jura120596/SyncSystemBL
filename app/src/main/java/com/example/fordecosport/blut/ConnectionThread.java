@@ -51,13 +51,13 @@ public class ConnectionThread extends Thread {
             } catch (SecurityException e) {
             }
             Log.d("MyLog", "Connected");
-            if (callback != null) callback.run();
             AppStatus.connectStatus = true;
 
         } catch (IOException e) {
             Log.d("MyLog", "Not connected");
             AppStatus.connectStatus = false;
         }
+        if (callback != null) callback.run();
     }
 
     public void closeConnection() {

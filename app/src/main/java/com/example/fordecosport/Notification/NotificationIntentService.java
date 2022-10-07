@@ -6,6 +6,7 @@ import android.content.Intent;
 import androidx.annotation.Nullable;
 
 import com.example.fordecosport.AppConstants;
+import com.example.fordecosport.AppStatus;
 import com.example.fordecosport.blut.BluetoothConnectionHelper;
 
 
@@ -25,7 +26,7 @@ public class NotificationIntentService extends IntentService {
         btConnect.connect(new Runnable() {
             @Override
             public void run() {
-
+                if (!AppStatus.connectStatus)  return;
                 switch (intent.getAction()) {
                     case "A_button":
                         btConnect.sendMess("A");

@@ -56,11 +56,6 @@ public class DeviceSearchActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(BluetoothDevice.ACTION_FOUND);
-        filter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
-        filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
-        registerReceiver(broadcastReceiver, filter);
     }
 
 
@@ -76,6 +71,7 @@ public class DeviceSearchActivity extends AppCompatActivity {
         if (item.getItemId() == android.R.id.home) {
             if (isDiscovery) {
                 try {
+                    unregisterReceiver(broadcastReceiver);
                     bluetoothAdapter.cancelDiscovery();
                 } catch (SecurityException e) {
                     e.printStackTrace();
@@ -99,6 +95,11 @@ public class DeviceSearchActivity extends AppCompatActivity {
                         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.BLUETOOTH_SCAN}, 2);
                     }
                 }
+                IntentFilter filter = new IntentFilter();
+                filter.addAction(BluetoothDevice.ACTION_FOUND);
+                filter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
+                filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+                registerReceiver(broadcastReceiver, filter);
                 bluetoothAdapter.startDiscovery();
             }catch (Exception e ) {
                 e.printStackTrace();
@@ -113,14 +114,18 @@ public class DeviceSearchActivity extends AppCompatActivity {
     private void init() {
         actionBar = getSupportActionBar();
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        if (!bluetoothAdapter.isEnabled()) {
+            Intent enableBT = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            startActivityForResult(enableBT, 1);
+        }
         list = new ArrayList<>();
-        if (actionBar == null) return;
-        actionBar.setDisplayHomeAsUpEnabled(true);
         listView = findViewById(R.id.listV);
         deviceListAdapter = new DeviceListAdapter(this, R.layout.bt_list_item, list);
         listView.setAdapter(deviceListAdapter);
         getPairedDevices();
         onItemClickListener();
+        if (actionBar == null) return;
+        actionBar.setDisplayHomeAsUpEnabled(true);
     }
 
     private void onItemClickListener() {
@@ -190,18 +195,19 @@ public class DeviceSearchActivity extends AppCompatActivity {
     private final BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (BluetoothDevice.ACTION_FOUND.equals(intent.getAction())) {
+            String action = intent.getAction();
+            if (BluetoothDevice.ACTION_FOUND.equals(action)) {
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                 DeviceListItem item = new DeviceListItem();
                 item.setBluetoothDevice(device);
                 item.setItemType(DeviceListAdapter.DISCOVERY_ITEM_TYPE);
                 list.add(item);
                 deviceListAdapter.notifyDataSetChanged();
-            } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(intent.getAction())) {
+            } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
                 isDiscovery = false;
                 getPairedDevices();
                 actionBar.setTitle(R.string.app_name);
-            } else if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(intent.getAction())) {
+            } else if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)) {
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                 try {
                     if (device.getBondState() == BluetoothDevice.BOND_BONDED) {

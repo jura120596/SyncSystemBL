@@ -59,12 +59,12 @@ public class StartActivity extends AppCompatActivity {
         libApiVolley = new LibApiVolley(this);
         keyguardManager = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
 
-        if (!keyguardManager.isKeyguardSecure()) {
+//        if (!keyguardManager.isKeyguardSecure()) {
             Intent in = new Intent(this, MainActivity.class);
             startActivity(in);
             finish();
-            return;
-        }
+//            return;
+//        }
 
         button.setOnClickListener(new View.OnClickListener() {
             @Override

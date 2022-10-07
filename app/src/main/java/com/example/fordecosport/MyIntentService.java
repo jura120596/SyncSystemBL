@@ -24,7 +24,7 @@ public class MyIntentService extends IntentService {
         btConnect.connect(new Runnable() {
             @Override
             public void run() {
-
+                if (!AppStatus.connectStatus)  return;
                 switch (intent.getAction()) {
                     case "A_button":
                         btConnect.sendMess("D");

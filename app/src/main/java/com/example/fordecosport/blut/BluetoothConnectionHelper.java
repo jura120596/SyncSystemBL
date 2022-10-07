@@ -11,6 +11,7 @@ public class BluetoothConnectionHelper {
     private SharedPreferences preferences;
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothDevice device;
+    private boolean started = false;
 
     private ConnectionThread connectionThread;
 
@@ -30,9 +31,15 @@ public class BluetoothConnectionHelper {
     public BluetoothDevice connect(Runnable r) {
         if (!bluetoothAdapter.isEnabled() || mac.isEmpty()) return null;
         device = bluetoothAdapter.getRemoteDevice(mac);
-        if (device == null) return device;
-        connectionThread = new ConnectionThread(bluetoothAdapter, device, r);
-        connectionThread.start();
+        if (device == null || started) return device;
+        synchronized(this) {
+            started = true;
+            connectionThread = new ConnectionThread(bluetoothAdapter, device, () -> {
+                if (r != null) r.run();
+                started = false;
+            });
+            connectionThread.start();
+        }
         return device;
     }
 
