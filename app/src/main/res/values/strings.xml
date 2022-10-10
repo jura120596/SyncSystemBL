@@ -3,4 +3,7 @@
     <string name="not_connected">not connected</string>
     <string name="title_name">найденные устройства:</string>
     <string name="discovering">Поиск...</string>
+    <string name="lock">&#128272;</string>
+    <string name="unlock">&#128275;</string>
+    <string name="car">&#128663;</string>
 </resources>

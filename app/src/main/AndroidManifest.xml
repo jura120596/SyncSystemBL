@@ -25,7 +25,7 @@
             android:exported="false" />
 
         <service
-            android:name="com.example.fordecosport.MyIntentService"
+            android:name="com.example.fordecosport.SyncIntentService"
             android:exported="false"></service>
 
         <activity

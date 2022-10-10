@@ -2,37 +2,34 @@ package com.example.fordecosport.blut;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.content.Context;
 import android.content.SharedPreferences;
-
-import com.example.fordecosport.AppConstants;
+import android.util.Log;
 
 public class BluetoothConnectionHelper {
-    private SharedPreferences preferences;
+    public static BluetoothConnectionHelper instance = null;
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothDevice device;
     private boolean started = false;
-
     private ConnectionThread connectionThread;
-
     private String mac;
-
-    public BluetoothConnectionHelper(Context context) {
-        preferences = context.getSharedPreferences(AppConstants.MY_PREF, Context.MODE_PRIVATE);
-        mac = preferences.getString(AppConstants.MAC_KEY, "");
-        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-    }
 
     public BluetoothConnectionHelper(String deviceMac) {
         mac = deviceMac;
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
     }
 
+    public static synchronized BluetoothConnectionHelper instance(String mac) {
+        if (instance == null || !instance.started) {
+            instance = new BluetoothConnectionHelper(mac);
+        }
+        return instance;
+    }
+
     public BluetoothDevice connect(Runnable r) {
         if (!bluetoothAdapter.isEnabled() || mac.isEmpty()) return null;
         device = bluetoothAdapter.getRemoteDevice(mac);
-        if (device == null || started) return device;
-        synchronized(this) {
+        synchronized (this) {
+            if (device == null || started) return device;
             started = true;
             connectionThread = new ConnectionThread(bluetoothAdapter, device, () -> {
                 if (r != null) r.run();
@@ -44,14 +41,12 @@ public class BluetoothConnectionHelper {
     }
 
     public void sendMess(String message) {
-        if (connectionThread != null) {
-            if (connectionThread.getReceiveThread() != null) {
-                try {
-                    connectionThread.getReceiveThread().sendData(message.getBytes());
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
+        if (connectionThread == null || connectionThread.getTransferThread() == null) return;
+        try {
+            connectionThread.getTransferThread().sendData(message.getBytes());
+            Log.d("Message sended", message);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 

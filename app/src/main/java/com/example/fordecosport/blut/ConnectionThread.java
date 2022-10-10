@@ -13,7 +13,8 @@ import java.io.IOException;
 
 
 public class ConnectionThread extends Thread {
-    private TransferDataThread receiveThread;
+    private final BluetoothDevice device;
+    private TransferDataThread transferThread;
     protected BluetoothAdapter btAdapter;
     private BluetoothSocket mainSocket;
     public static final String UUID = "00001101-0000-1000-8000-00805F9B34FB";
@@ -23,13 +24,10 @@ public class ConnectionThread extends Thread {
     public ConnectionThread(BluetoothAdapter bluetoothAdapter, BluetoothDevice device, Runnable callback) {
         this.btAdapter = bluetoothAdapter;
         this.callback = callback;
+        this.device = device;
         try {
-            try {
-                mainSocket = device.createRfcommSocketToServiceRecord(java.util.UUID.fromString(UUID));
-            } catch (SecurityException e) {
-                e.printStackTrace();
-            }
-        } catch (IOException e) {
+            mainSocket = this.device.createRfcommSocketToServiceRecord(java.util.UUID.fromString(UUID));
+        } catch (IOException|SecurityException e) {
             e.printStackTrace();
         }
     }
@@ -39,37 +37,47 @@ public class ConnectionThread extends Thread {
     @Override
     public void run() {
         try {
-            btAdapter.cancelDiscovery();
+            if (btAdapter.isDiscovering()) {
+                System.out.println("end discovery");
+                btAdapter.cancelDiscovery();
+            }
         } catch (SecurityException e) {
-            e.printStackTrace();
+            System.out.println("Discovery stop error: " + e.getMessage());
         }
         try {
+            mainSocket.connect();
             try {
-                mainSocket.connect();
-                receiveThread = new TransferDataThread(mainSocket);
-                receiveThread.start();
+                transferThread = new TransferDataThread(mainSocket);
+                transferThread.start();
+                Log.d("MyLog", "Connected");
+                AppStatus.connectStatus = true;
+                if (callback != null) {
+                    System.out.println("Run callback after try :");
+                    callback.run();
+                }
             } catch (SecurityException e) {
+                Log.d("MyLog", "Not connected " + e.getMessage());
+                AppStatus.connectStatus = false;
             }
-            Log.d("MyLog", "Connected");
-            AppStatus.connectStatus = true;
-
         } catch (IOException e) {
-            Log.d("MyLog", "Not connected");
-            AppStatus.connectStatus = false;
+            System.out.println("Main socket connect error: " + e.getMessage());
+            System.out.println(mainSocket);
         }
-        if (callback != null) callback.run();
     }
 
     public void closeConnection() {
         try {
-            mainSocket.close();
             AppStatus.connectStatus = false;
+            if (transferThread != null) transferThread.closeStreams();
+            mainSocket.close();
         } catch (IOException e) {
+            e.printStackTrace(System.out);
+            System.out.println("Ошибка закрытия");
         }
     }
 
 
-    public TransferDataThread getReceiveThread() {
-        return receiveThread;
+    public TransferDataThread getTransferThread() {
+        return transferThread;
     }
 }

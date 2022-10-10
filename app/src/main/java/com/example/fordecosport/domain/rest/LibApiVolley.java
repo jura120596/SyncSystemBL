@@ -58,7 +58,7 @@ public class LibApiVolley implements LibApi {
                     if (context instanceof EventLogAct) {
                         ((EventLogAct)context).updateEvents();
                     }
-                    Log.d(API_TEST, NoDb.ALL_EVENT_LIST.toString());
+//                    Log.d(API_TEST, NoDb.ALL_EVENT_LIST.toString());
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
@@ -82,7 +82,7 @@ public class LibApiVolley implements LibApi {
                         User user = UserMapper.eventFromJson(jsonObject);
                         NoDb.ALL_USER_LIST.add(user);
                     }
-                    Log.d(API_TEST, NoDb.ALL_USER_LIST.toString());
+//                    Log.d(API_TEST, NoDb.ALL_USER_LIST.toString());
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
@@ -122,7 +122,7 @@ public class LibApiVolley implements LibApi {
             @Override
             public void onResponse(String response) {
                 fillUser();
-                Log.d(API_TEST, response);
+//                Log.d(API_TEST, response);
             }
         }, errorListener
         ) {
@@ -148,7 +148,7 @@ public class LibApiVolley implements LibApi {
             @Override
             public void onResponse(String response) {
                 fillEvent();
-                Log.d(API_TEST, response);
+//                Log.d(API_TEST, response);
             }
         }, errorListener
         ) {

@@ -22,11 +22,6 @@ public class TransferDataThread extends Thread {
         this.socket = socket;
         try {
             in = socket.getInputStream();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        try {
             out = socket.getOutputStream();
         } catch (IOException e) {
             e.printStackTrace();
@@ -36,7 +31,7 @@ public class TransferDataThread extends Thread {
 
     @Override
     public void run() {
-        buffer = new byte[1000];
+        buffer = new byte[256];
         while (true) {
             try {
                 readData();
@@ -50,15 +45,16 @@ public class TransferDataThread extends Thread {
     public String readData() throws IOException {
         int size = in.read(buffer);
         String message = new String(buffer, 0, size);
-        Log.d("MyLog", "Message : " + message);
+        Log.d("Bluetooth out", "Message : " + message);
         return message;
     }
 
-    public void sendData(byte[] byteArray) {
-        try {
-            out.write(byteArray);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    public void sendData(byte[] byteArray) throws IOException {
+        out.write(byteArray);
+    }
+
+    public void closeStreams() throws IOException {
+        if (in != null) in.close();
+        if (out != null) out.close();
     }
 }

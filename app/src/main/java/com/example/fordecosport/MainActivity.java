@@ -16,6 +16,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -38,6 +39,7 @@ import java.text.SimpleDateFormat;
 
 public class MainActivity extends AppCompatActivity {
     private static final String CHANNEL_ID = "SYNC SYSTEM";
+    public static final int BAR_ID = 125;
     private MenuItem menuItem, connectStatus;
     private BluetoothAdapter BTadapter;
     private final int REQUEST_BL = 15;
@@ -50,12 +52,14 @@ public class MainActivity extends AppCompatActivity {
     private ImageView carView;
     private int user_id = 0;
     private LibApiVolley libApiVolley;
+    private boolean active = false;
 
 
     private void init() {
         dataBaseHelper = new DataBaseHelper(MainActivity.this);
         BTadapter = BluetoothAdapter.getDefaultAdapter();
-        bTconnect = new BluetoothConnectionHelper(this);
+        SharedPreferences preferences = this.getSharedPreferences(AppConstants.MY_PREF, Context.MODE_PRIVATE);
+        bTconnect = BluetoothConnectionHelper.instance(preferences.getString(AppConstants.MAC_KEY, ""));
         actionBar = getSupportActionBar();
         libApiVolley = new LibApiVolley(this);
 
@@ -122,67 +126,30 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         init();
-        View.OnTouchListener touchListener = new View.OnTouchListener() {
-            private View view;
-            private MotionEvent motionEvent;
-
-            @Override
-            public boolean onTouch(View view, MotionEvent motionEvent) {
-                this.view = view;
-                this.motionEvent = motionEvent;
-
-                if (AppStatus.connectStatus) {
-                    if (motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
-                        switch (view.getId()) {
-                            case (R.id.ButA):
-                                bTconnect.sendMess("D");
-                                Log.d("MyLog", "Send D");
-                                libApiVolley.addEvent(new Event(user_id, "0", Time.getTime()));
-                                break;
-                            case (R.id.ButB):
-                                bTconnect.sendMess("B");
-                                libApiVolley.addEvent(new Event(user_id, "1", Time.getTime()));
-
-                                Log.d("MyLog", "Send B");
-                                break;
-                            case (R.id.ButC):
-                                bTconnect.sendMess("C");
-                                libApiVolley.addEvent(new Event(user_id, "2", Time.getTime()));
-
-                                Log.d("MyLog", "Send C");
-                                break;
-                            case (R.id.ButD):
-                                bTconnect.sendMess("A");
-                                libApiVolley.addEvent(new Event(user_id, "3", Time.getTime()));
-                                Log.d("MyLog", "Send A");
-                                break;
-                        }
-                    }
-
-                    if (motionEvent.getAction() == MotionEvent.ACTION_UP) {
-                        switch (view.getId()) {
-                            case (R.id.ButA):
-                                bTconnect.sendMess("d");
-                                Log.d("MyLog", "Send d");
-                                break;
-                            case (R.id.ButB):
-                                bTconnect.sendMess("b");
-                                Log.d("MyLog", "Send b");
-                                break;
-                            case (R.id.ButC):
-                                bTconnect.sendMess("c");
-                                Log.d("MyLog", "Send c");
-                                break;
-                            case (R.id.ButD):
-                                bTconnect.sendMess("a");
-                                Log.d("MyLog", "Send a");
-                                break;
-                        }
-                    }
+        View.OnTouchListener touchListener = (view, e) -> {
+            if (AppStatus.connectStatus) {
+                boolean isDown = e.getAction() == MotionEvent.ACTION_DOWN;
+                boolean isUp = e.getAction() == MotionEvent.ACTION_UP;
+                if(isDown || isUp) switch (view.getId()) {
+                    case (R.id.ButA):
+                        bTconnect.sendMess(isDown ? "A" : "a");
+                        libApiVolley.addEvent(new Event(user_id, "0", Time.getTime()));
+                        break;
+                    case (R.id.ButB):
+                        bTconnect.sendMess(isDown ? "B" : "b");
+                        libApiVolley.addEvent(new Event(user_id, "1", Time.getTime()));
+                        break;
+                    case (R.id.ButC):
+                        bTconnect.sendMess(isDown ? "C" : "c");
+                        libApiVolley.addEvent(new Event(user_id, "2", Time.getTime()));
+                        break;
+                    case (R.id.ButD):
+                        bTconnect.sendMess(isDown ? "D" : "d");
+                        libApiVolley.addEvent(new Event(user_id, "3", Time.getTime()));
+                        break;
                 }
-                return false;
             }
-
+            return false;
         };
 
         bA.setOnTouchListener(touchListener);
@@ -196,21 +163,25 @@ public class MainActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         AppStatus.openStatus = true;
-        if (!AppStatus.connectStatus) bTconnect.connect(null);
-        notificationManager();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        if (!AppStatus.connectStatus) scan(new Handler());
+        NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        notificationManager.cancel(BAR_ID);
+        active = true;
+        if (!AppStatus.connectStatus) bTconnect.connect(() -> {
+            if (!AppStatus.connectStatus) scan(new Handler());
+            else runOnUiThread(()->{connectStatus.setIcon(R.drawable.ic_circle_green);});
+        });
     }
     public void scan(Handler h) {
         h.postDelayed(() -> {
             Toast.makeText(this, "Ищу машину", Toast.LENGTH_SHORT).show();
             bTconnect.connect(()->{
                 if (!AppStatus.connectStatus) {
-                    scan(h);
+                    if (active) scan(h);
                 } else {
                     runOnUiThread(()->{connectStatus.setIcon(R.drawable.ic_circle_green);});
                 }
@@ -237,6 +208,7 @@ public class MainActivity extends AppCompatActivity {
                     BTadapter.disable();
                     menuItem.setIcon(R.drawable.ic_baseline_bluetooth_24);
                 } catch (SecurityException securityException) {
+                    securityException.printStackTrace();
                 }
             }
         } else if (item.getItemId() == R.id.bt_menu) {
@@ -296,41 +268,40 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        if (AppStatus.connectStatus) bTconnect.getConnectionThread().closeConnection();
+        active = false;
+        notificationManager();
+        if (bTconnect != null && bTconnect.getConnectionThread() != null) bTconnect.getConnectionThread().closeConnection();
     }
 
     public void notificationManager() {
         RemoteViews remoteViews = new RemoteViews(getPackageName(), R.layout.notification);
         NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 
-        Intent A_Intent = new Intent(this, MyIntentService.class);
-        A_Intent.setAction("A_button");
-        remoteViews.setOnClickPendingIntent(R.id.buttonA, PendingIntent.getService(this, 0, A_Intent, PendingIntent.FLAG_IMMUTABLE));
+        Intent iA = new Intent(this, SyncIntentService.class).setAction("A");
+        remoteViews.setOnClickPendingIntent(R.id.buttonA, PendingIntent.getService(this, 0, iA, PendingIntent.FLAG_IMMUTABLE));
 
-        Intent B_Inent = new Intent(this, MyIntentService.class);
-        B_Inent.setAction("B_button");
-        remoteViews.setOnClickPendingIntent(R.id.buttonB, PendingIntent.getService(this, 1, B_Inent, PendingIntent.FLAG_IMMUTABLE));
+        Intent iB = new Intent(this, SyncIntentService.class).setAction("B");
+        remoteViews.setOnClickPendingIntent(R.id.buttonB, PendingIntent.getService(this, 1, iB, PendingIntent.FLAG_IMMUTABLE));
 
-        Intent C_Inent = new Intent(this, MyIntentService.class);
-        C_Inent.setAction("C_button");
-        remoteViews.setOnClickPendingIntent(R.id.buttonC, PendingIntent.getService(this, 2, C_Inent, PendingIntent.FLAG_IMMUTABLE));
+        Intent iC = new Intent(this, SyncIntentService.class).setAction("C");
+        remoteViews.setOnClickPendingIntent(R.id.buttonC, PendingIntent.getService(this, 2, iC, PendingIntent.FLAG_IMMUTABLE));
 
-        Intent D_Inent = new Intent(this, MyIntentService.class);
-        D_Inent.setAction("D_button");
-        remoteViews.setOnClickPendingIntent(R.id.buttonD,
-                PendingIntent.getService(this, 3, D_Inent, PendingIntent.FLAG_IMMUTABLE));
+        Intent iD = new Intent(this, SyncIntentService.class).setAction("D");
+        remoteViews.setOnClickPendingIntent(R.id.buttonD, PendingIntent.getService(this, 3, iD, PendingIntent.FLAG_IMMUTABLE));
 
+        Intent iS = new Intent(this, SyncIntentService.class).setAction("start");
+        remoteViews.setOnClickPendingIntent(R.id.buttonStart, PendingIntent.getService(this, 4, iS, PendingIntent.FLAG_IMMUTABLE));
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID).
-                setContent(remoteViews).setSmallIcon(R.drawable.ic____________1).setContentTitle("SYNC");
+                setContent(remoteViews).setSmallIcon(R.drawable.ic_car).setContentTitle("SYNC");
         createChannelIfNeeded(notificationManager);
-        notificationManager.notify(null, 125, builder.build());
+        notificationManager.notify(null, BAR_ID, builder.build());
     }
 
     public static void createChannelIfNeeded(NotificationManager manager) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel notificationChannel = new NotificationChannel(CHANNEL_ID, CHANNEL_ID, NotificationManager.IMPORTANCE_DEFAULT);
-            manager.createNotificationChannel(notificationChannel);
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, CHANNEL_ID, NotificationManager.IMPORTANCE_DEFAULT);
+            manager.createNotificationChannel(channel);
         }
     }
 
